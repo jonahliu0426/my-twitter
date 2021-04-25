@@ -26,7 +26,7 @@ SECRET_KEY = 'lh6zqem%5g*7+t(pf^&#fw6)9jy5jmcwpb(qvwc5u5x!^&72l_'
 DEBUG = True
 
 ALLOWED_HOSTS = ['127.0.0.1', '192.168.33.10', 'localhost']
-INTERNAL_IPS = ['127.0.0.1', '192.168.33.10', 'localhost']
+INTERNAL_IPS = ['10.0.2.2']
 
 # Application definition
 
