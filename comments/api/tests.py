@@ -1,9 +1,11 @@
 # from django.test import TestCase
 from testing.testcases import TestCase
 from rest_framework.test import APIClient
-
+from comments.models import Comment
+from django.utils import timezone
 
 COMMENT_URL = '/api/comments/'
+COMMENT_DETAIL_URL = COMMENT_URL + '{}/'
 
 
 # Create your tests here.
@@ -60,4 +62,57 @@ class CommentModelTests(TestCase):
         self.assertEqual(response.data['user']['id'], self.comment_test_user2.id)
         self.assertEqual(response.data['tweet_id'], self.tweet.id)
         self.assertEqual(response.data['content'], '1' * 140)
+
+    def test_update(self):
+        comment = self.create_comment(self.comment_test_user2, self.tweet, 'original')
+        another_tweet = self.create_tweet(self.comment_test_user3)
+        url = COMMENT_DETAIL_URL.format(comment.id)
+
+        # when use put, anonymous user cannot update
+        response = self.anonymous_client.put(url, {'content': 'new'})
+        self.assertEqual(response.status_code, 403)
+
+        # cannot update comments posted by other users
+        response = self.comment_test_user3_client.put(url, {'content': 'new'})
+        self.assertEqual(response.status_code, 403)
+        comment.refresh_from_db()
+        self.assertNotEqual(comment.content, 'new')
+
+        # cannot update any content except for content,
+        before_updated_at = comment.updated_at
+        before_created_at = comment.created_at
+        now = timezone.now()
+        response = self.comment_test_user2_client.put(url, {
+            'content': 'new',
+            'user_id': self.comment_test_user3.id,
+            'tweet_id': another_tweet.id,
+            'created_at': now,
+        })
+        self.assertEqual(response.status_code, 200)
+        comment.refresh_from_db()
+        self.assertEqual(comment.content, 'new')
+        self.assertEqual(comment.user, self.comment_test_user2)
+        self.assertEqual(comment.tweet, self.tweet)
+        self.assertEqual(comment.created_at, before_created_at)
+        self.assertNotEqual(comment.created_at, now)
+        self.assertNotEqual(comment.updated_at, before_updated_at)
+        # self.assertEqual(comment.updated_at, now)
+
+    def test_destroy(self):
+        comment = self.create_comment(self.comment_test_user2, self.tweet)
+        url = COMMENT_DETAIL_URL.format(comment.id)
+
+        # anonymous user cannot delete
+        response = self.anonymous_client.delete(url)
+        self.assertEqual(response.status_code, 403)
+
+        # cannot delete comments posted by other users
+        response = self.comment_test_user3_client.delete(url)
+        self.assertEqual(response.status_code, 403)
+
+        # can delete comments posted by user itself
+        count = Comment.objects.count()
+        response = self.comment_test_user2_client.delete(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Comment.objects.count(), count - 1)
 
