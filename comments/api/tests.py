@@ -116,3 +116,34 @@ class CommentModelTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(Comment.objects.count(), count - 1)
 
+    def test_list(self):
+        # must have tweet_id
+        response = self.anonymous_client.get(COMMENT_URL)
+        self.assertEqual(response.status_code, 400)
+
+        # Access allowed with tweet_id
+        response = self.anonymous_client.get(COMMENT_URL, {
+            'tweet_id': self.tweet.id,
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['comments']), 0)
+
+        # Test comments are ordered by created time
+        self.create_comment(self.comment_test_user2, self.tweet, '1')
+        self.create_comment(self.comment_test_user3, self.tweet, '2')
+        self.create_comment(self.comment_test_user3, self.create_tweet(self.comment_test_user3), '3')
+        response = self.anonymous_client.get(COMMENT_URL, {
+            'tweet_id': self.tweet.id,
+        })
+        self.assertEqual(len(response.data['comments']), 2)
+        self.assertEqual(response.data['comments'][0]['content'], '1')
+        self.assertEqual(response.data['comments'][1]['content'], '2')
+
+        # Test only 'tweet_id' will be applied to filter(),
+        # when both 'tweet_id' and 'user_id' are provided in filterset_fields
+        response = self.anonymous_client.get(COMMENT_URL, {
+            'tweet_id': self.tweet.id,
+            'user_id': self.comment_test_user2,
+        })
+        self.assertEqual(len(response.data['comments']), 2)
+
