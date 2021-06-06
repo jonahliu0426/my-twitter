@@ -22,11 +22,13 @@ class CommentModelTests(TestCase):
 
         self.tweet = self.create_tweet(self.comment_test_user2)
 
+
     def test_comment(self):
         user1 = self.create_user('comment_test_user1')
         tweet1 = self.create_tweet(user1)
         comment1 = self.create_comment(user1, tweet1)
         self.assertNotEqual(comment1.__str__(), None)
+
 
     def test_create(self):
         # Anonymous user cannot create comment
