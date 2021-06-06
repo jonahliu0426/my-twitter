@@ -1,26 +1,31 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
-from tweets.api.serializers import TweetSerializer, TweetSerializerForCreate
 from tweets.models import Tweet
 from newsfeeds.services import NewsFeedService
+from utils.decorators import required_params
+from tweets.api.serializers import (
+    TweetSerializer,
+    TweetSerializerForCreate,
+    TweetSerializerWithComments,
+)
 
 
 class TweetViewSet(viewsets.GenericViewSet):
     serializer_class = TweetSerializerForCreate
     # serializer_class = TweetSerializer
+    queryset = Tweet.objects.all()
 
     def get_permissions(self):
-        if self.action == 'list':
+        if self.action in ['list', 'retrieve']:
             return [AllowAny()]
         return [IsAuthenticated()]
 
+    @required_params(request_attr='query_params', params=['user_id'])
     def list(self, request, *args, **kwargs):
         """
         重载 list 方法，不列出所有 tweets，必须要求指定 user_id 作为筛选条件
         """
-        if 'user_id' not in request.query_params:
-            return Response('missing user_id', status=400)
         # select * from twitter_tweets where user_id = xxx order by created_at desc
         user_id = request.query_params['user_id']
         tweets = Tweet.objects.filter(user_id=user_id).order_by('-created_at')
@@ -47,4 +52,8 @@ class TweetViewSet(viewsets.GenericViewSet):
         tweet = serializer.save()
         NewsFeedService.fanout_to_followers(tweet)
         return Response(TweetSerializer(tweet).data, status=201)
+
+    def retrieve(self, request, *args, **kwargs):
+        tweet = self.get_object()
+        return Response(TweetSerializerWithComments(tweet).data)
 

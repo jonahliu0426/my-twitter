@@ -4,6 +4,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from comments.models import Comment
 from tweets.models import Tweet
 from tweets.api.serializers import TweetSerializer
+from utils.decorators import required_params
 from comments.api.permissions import IsObjectOwner
 from comments.api.serializers import (
     CommentSerializerForCreate,
@@ -27,6 +28,7 @@ class CommentViewSet(viewsets.GenericViewSet):
             return [IsAuthenticated(), IsObjectOwner()]
         return [AllowAny()]
 
+    @required_params(params=['tweet_id'])
     def list(self, request, *args, **kwargs):
         if 'tweet_id' not in request.query_params:
             return Response({
