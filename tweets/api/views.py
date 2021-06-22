@@ -7,7 +7,7 @@ from utils.decorators import required_params
 from tweets.api.serializers import (
     TweetSerializer,
     TweetSerializerForCreate,
-    TweetSerializerWithComments,
+    TweetSerializerForDetail,
 )
 
 
@@ -30,7 +30,11 @@ class TweetViewSet(viewsets.GenericViewSet):
         user_id = request.query_params['user_id']
         tweets = Tweet.objects.filter(user_id=user_id).order_by('-created_at')
         # many=True 会返回一个list结构
-        serializer = TweetSerializer(tweets, many=True)
+        serializer = TweetSerializer(
+            tweets,
+            context={'request': request},
+            many=True,
+        )
         # In general, response in json format requires dict/hash rather than list.
         return Response({'tweets': serializer.data})
 
@@ -51,9 +55,19 @@ class TweetViewSet(viewsets.GenericViewSet):
         # save will call create method in TweetSerializerForCreate
         tweet = serializer.save()
         NewsFeedService.fanout_to_followers(tweet)
-        return Response(TweetSerializer(tweet).data, status=201)
+        return Response(
+            TweetSerializer(
+                tweet,
+                context={'request': request}
+            ).data,
+            status=201,
+        )
 
     def retrieve(self, request, *args, **kwargs):
         tweet = self.get_object()
-        return Response(TweetSerializerWithComments(tweet).data)
+        serializer = TweetSerializerForDetail(
+            tweet,
+            context={'request': request},
+        )
+        return Response(serializer.data)
 
