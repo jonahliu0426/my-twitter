@@ -40,7 +40,11 @@ class CommentViewSet(viewsets.GenericViewSet):
         comments = self.filter_queryset(queryset)\
             .prefetch_related('user')\
             .order_by('created_at')
-        serializer = CommentSerializer(comments, many=True)
+        serializer = CommentSerializer(
+            comments,
+            context={'request': request},
+            many=True,
+        )
         # tweet = Tweet.objects.filter(id=serializer.data[0]['tweet_id'])
         # tweet_serializer = TweetSerializer(tweet, many=True)
         return Response({
@@ -66,7 +70,7 @@ class CommentViewSet(viewsets.GenericViewSet):
         # save method will call the create method in serializer
         comment = serializer.save()
         return Response(
-            CommentSerializer(comment).data,
+            CommentSerializer(comment, context={'request': request}).data,
             status=status.HTTP_201_CREATED,
         )
 
@@ -91,7 +95,7 @@ class CommentViewSet(viewsets.GenericViewSet):
         # otherwise, it will call save() method
         comment = serializer.save()
         return Response(
-            CommentSerializer(comment).data,
+            CommentSerializer(comment, context={'request': request}).data,
             status=status.HTTP_200_OK
         )
 
