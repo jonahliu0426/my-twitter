@@ -25,20 +25,17 @@ class NotificationSerializer(serializers.ModelSerializer):
             'unread',
         )
 
-    """
-    def _get_model_class(self, data):
-        if data['actor_content_type'] == 'comment':
-            return Comment
-        if data['actor_content_type'] == 'tweet':
-            return Tweet
-        return None
+class NotificationSerializerForUpdate(serializers.ModelSerializer):
+    # BooleanField 会自动兼容 true, false, "true", "false", "True", "1", "0"
+    # 等情况，并都转换为 python 的 boolean 类型的 True / False
+    unread = serializers.BooleanField()
 
-    def validate(self, data):
-        model_class = self._get_model_class(data)
-        if not model_class:
-            raise ValidationError({'actor_content_type': 'Content type does not exist'})
-        liked_object = model_class.objects.filter(id=data['actor_object_id']).first()
-        if not liked_object:
-            raise ValidationError({'actor_object_id': 'Object does not exist'})
-        return data
-    """
+    class Meta:
+        model = Notification
+        fields = ('unread',)
+
+    def update(self, instance, validated_data):
+        instance.unread = validated_data['unread']
+        instance.save()
+        return instance
+
