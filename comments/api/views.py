@@ -11,6 +11,7 @@ from comments.api.serializers import (
     CommentSerializer,
     CommentSerializerForUpdate,
 )
+from inbox.services import NotificationService
 
 
 class CommentViewSet(viewsets.GenericViewSet):
@@ -69,6 +70,7 @@ class CommentViewSet(viewsets.GenericViewSet):
 
         # save method will call the create method in serializer
         comment = serializer.save()
+        NotificationService.send_comment_notification(comment)
         return Response(
             CommentSerializer(comment, context={'request': request}).data,
             status=status.HTTP_201_CREATED,

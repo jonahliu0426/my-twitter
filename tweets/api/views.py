@@ -21,7 +21,7 @@ class TweetViewSet(viewsets.GenericViewSet):
             return [AllowAny()]
         return [IsAuthenticated()]
 
-    @required_params(request_attr='query_params', params=['user_id'])
+    @required_params(method='GET', params=['user_id'])
     def list(self, request, *args, **kwargs):
         """
         重载 list 方法，不列出所有 tweets，必须要求指定 user_id 作为筛选条件
