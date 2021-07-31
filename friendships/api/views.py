@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from friendships.models import Friendship
+from friendships.api.paginations import FriendshipPagination
 from friendships.api.serializers import (
     FollowingSerializer,
     FollowerSerializer,
@@ -14,37 +15,32 @@ from django.contrib.auth.models import User
 class FriendshipViewSet(viewsets.GenericViewSet):
     serializer_class = FriendshipSerializerForCreate
     queryset = User.objects.all()
+    # 一般来说，不同的 views 所需要的 pagination 规则肯定是不同的，因此一般都需要自定义
+    pagination_class = FriendshipPagination
 
     @action(methods=['GET'], detail=True, permission_classes=[AllowAny])
     def followers(self, request, pk):
         friendships = Friendship.objects.filter(to_user_id=pk).order_by('-created_at')
-        serializer = FollowerSerializer(friendships, many=True)
-        return Response(
-            {'followers': serializer.data},
-            status=status.HTTP_200_OK,
-        )
+        page = self.paginate_queryset(friendships)
+        serializer = FollowerSerializer(page, many=True, context={'request': request})
+        return self.get_paginated_response(serializer.data)
 
     @action(methods=['GET'], detail=True, permission_classes=[AllowAny])
     def followings(self, request, pk):
         friendships = Friendship.objects.filter(from_user_id=pk).order_by('-created_at')
-        serializer = FollowingSerializer(friendships, many=True)
-        return Response(
-            {'followings': serializer.data},
-            status=status.HTTP_200_OK,
-        )
+        page = self.paginate_queryset(friendships)
+        serializer = FollowingSerializer(page, many=True, context={'request': request})
+        return self.get_paginated_response(serializer.data)
 
     @action(methods=['POST'], detail=True, permission_classes=[IsAuthenticated])
     def follow(self, request, pk):
-        # /api/friendship/<pk>/follow
-        # check if user with id=pk exists
-        self.get_object()
-
+        # 特殊判断重复 follow 的情况（比如前端猛点好多少次 follow)
+        # 静默处理，不报错，因为这类重复操作因为网络延迟的原因会比较多，没必要当做错误处理
         if Friendship.objects.filter(from_user=request.user, to_user=pk).exists():
             return Response({
-                 'success': True,
-                 'duplicate': True,
-             }, status=status.HTTP_201_CREATED)
-
+                'success': True,
+                'duplicate': True,
+            }, status=status.HTTP_201_CREATED)
         serializer = FriendshipSerializerForCreate(data={
             'from_user_id': request.user.id,
             'to_user_id': pk,
@@ -52,11 +48,10 @@ class FriendshipViewSet(viewsets.GenericViewSet):
         if not serializer.is_valid():
             return Response({
                 'success': False,
-                'message': 'Please check input',
                 'errors': serializer.errors,
             }, status=status.HTTP_400_BAD_REQUEST)
         instance = serializer.save()
-        return Response(FollowingSerializer(instance).data, status=status.HTTP_201_CREATED)
+        return Response(FollowingSerializer(instance, context={'request': request}).data, status=status.HTTP_201_CREATED)
 
     @action(methods=['POST'], detail=True, permission_classes=[IsAuthenticated])
     def unfollow(self, request, pk):
