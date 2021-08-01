@@ -172,4 +172,4 @@ class CommentModelTests(TestCase):
         self.create_newsfeed(self.comment_test_user3, tweet)
         response = self.comment_test_user3_client.get(NEWSFEED_LIST_API)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['newsfeeds'][0]['tweet']['comments_count'], 2)
+        self.assertEqual(response.data['results'][0]['tweet']['comments_count'], 2)
