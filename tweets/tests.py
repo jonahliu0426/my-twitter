@@ -8,6 +8,7 @@ from tweets.constants import TweetPhotoStatus
 class TweetTests(TestCase):
 
     def setUp(self):
+        self.clear_cache()
         self.doge = User.objects.create_user(username='doge')
         self.tweet = Tweet.objects.create(user=self.doge, content='Do Only Good Everyday!')
 

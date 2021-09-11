@@ -17,13 +17,13 @@ class FriendshipServiceTest(TestCase):
         user2 = self.create_user('user2')
         for to_user in [user1, user2, self.tom]:
             Friendship.objects.create(from_user=self.dave, to_user=to_user)
-        FriendshipService.invalidate_following_cache(self.dave.id)
+
 
         user_id_set = FriendshipService.get_following_user_id_set(self.dave.id)
         self.assertEqual(user_id_set, {user1.id, user2.id, self.tom.id})
 
         Friendship.objects.filter(from_user=self.dave, to_user=self.tom).delete()
-        FriendshipService.invalidate_following_cache(self.dave.id)
+
         user_id_set = FriendshipService.get_following_user_id_set(self.dave.id)
         self.assertEqual(user_id_set, {user1.id, user2.id})
 

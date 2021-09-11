@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from tweets.models import Tweet
 from likes.models import Like
 from django.contrib.contenttypes.models import ContentType
-
+from accounts.services import UserService
 
 # Create your models here.
 class Comment(models.Model):
@@ -29,3 +29,7 @@ class Comment(models.Model):
 
     def __str__(self):
         return f'{self.created_at} - {self.user} says {self.content} at tweet {self.tweet_id}'
+
+    @property
+    def cached_user(self):
+        return UserService.get_user_through_cache(self.user_id)
