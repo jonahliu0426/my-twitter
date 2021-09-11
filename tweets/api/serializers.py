@@ -2,7 +2,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from tweets.models import Tweet
 from tweets.services import TweetService
-from  tweets.constants import TWEET_PHOTOS_UPLOAD_LIMIT
+from tweets.constants import TWEET_PHOTOS_UPLOAD_LIMIT
 from comments.api.serializers import CommentSerializer
 from accounts.api.serializers import UserSerializerForTweet
 from likes.services import LikeService
