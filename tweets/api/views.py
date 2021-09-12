@@ -10,6 +10,7 @@ from tweets.api.serializers import (
     TweetSerializerForCreate,
     TweetSerializerForDetail,
 )
+from tweets.services import TweetService
 
 
 class TweetViewSet(viewsets.GenericViewSet):
@@ -30,7 +31,9 @@ class TweetViewSet(viewsets.GenericViewSet):
         """
         # select * from twitter_tweets where user_id = xxx order by created_at desc
         user_id = request.query_params['user_id']
-        tweets = Tweet.objects.filter(user_id=user_id).order_by('-created_at')
+        # tweets = Tweet.objects.filter(user_id=user_id).order_by('-created_at')
+        # redis is faster
+        tweets = TweetService.get_cached_tweets(user_id=request.query_params['user_id'])
         tweets = self.paginate_queryset(tweets)
         # many=True 会返回一个list结构
         serializer = TweetSerializer(
