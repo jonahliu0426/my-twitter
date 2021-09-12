@@ -8,7 +8,7 @@ from django.contrib.contenttypes.models import ContentType
 from rest_framework.test import APIClient
 from django.core.cache import caches
 from utils.redis_client import RedisClient
-
+from friendships.models import Friendship
 
 class TestCase(DjangoTestCase):
 
@@ -31,6 +31,9 @@ class TestCase(DjangoTestCase):
         # 不能写成 User.objects.create()
         # 因为 password 需要被加密, username 和 email 需要进行一些 normalize 处理
         return User.objects.create_user(username, email, password)
+
+    def create_friendship(self, from_user, to_user):
+        return Friendship.objects.create(from_user=from_user, to_user=to_user)
 
     def create_tweet(self, user, content=None):
         if content is None:
