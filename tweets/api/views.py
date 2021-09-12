@@ -12,9 +12,7 @@ from tweets.api.serializers import (
 )
 
 
-class TweetViewSet(viewsets.GenericViewSet,
-                   viewsets.mixins.CreateModelMixin,
-                   viewsets.mixins.ListModelMixin):
+class TweetViewSet(viewsets.GenericViewSet):
     serializer_class = TweetSerializerForCreate
     # serializer_class = TweetSerializer
     queryset = Tweet.objects.all()
