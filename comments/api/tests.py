@@ -25,14 +25,19 @@ class CommentModelTests(TestCase):
         self.comment_test_user3_client.force_authenticate(self.comment_test_user3)
 
         self.tweet = self.create_tweet(self.comment_test_user2)
-
+        self.linghu = self.create_user('linghu')
+        self.linghu_client = APIClient()
+        self.linghu_client.force_authenticate(self.linghu)
+        self.dongxie = self.create_user('dongxie')
+        self.dongxie_client = APIClient()
+        self.dongxie_client.force_authenticate(self.dongxie)
 
     def test_comment(self):
+
         user1 = self.create_user('comment_test_user1')
         tweet1 = self.create_tweet(user1)
         comment1 = self.create_comment(user1, tweet1)
         self.assertNotEqual(comment1.__str__(), None)
-
 
     def test_create(self):
         # Anonymous user cannot create comment
@@ -153,7 +158,6 @@ class CommentModelTests(TestCase):
         })
         self.assertEqual(len(response.data['comments']), 2)
 
-
     def test_comments_count(self):
         # test tweet detail api
         tweet = self.create_tweet(self.comment_test_user2)
@@ -174,3 +178,41 @@ class CommentModelTests(TestCase):
         response = self.comment_test_user3_client.get(NEWSFEED_LIST_API)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['results'][0]['tweet']['comments_count'], 2)
+
+    def test_comments_count_with_cache(self):
+        tweet_url = '/api/tweets/{}/'.format(self.tweet.id)
+        response = self.linghu_client.get(tweet_url)
+        self.assertEqual(self.tweet.comments_count, 0)
+        self.assertEqual(response.data['comments_count'], 0)
+
+        data = {'tweet_id': self.tweet.id, 'content': 'a comment'}
+        for i in range(2):
+            _, client = self.create_user_and_client('user{}'.format(i))
+            client.post(COMMENT_URL, data)
+            response = client.get(tweet_url)
+            self.assertEqual(response.data['comments_count'], i + 1)
+            self.tweet.refresh_from_db()
+            self.assertEqual(self.tweet.comments_count, i + 1)
+
+        comment_data = self.dongxie_client.post(COMMENT_URL, data).data
+        response = self.dongxie_client.get(tweet_url)
+        self.assertEqual(response.data['comments_count'], 3)
+        self.tweet.refresh_from_db()
+        self.assertEqual(self.tweet.comments_count, 3)
+
+        # update comment shouldn't update comments_count
+        comment_url = '{}{}/'.format(COMMENT_URL, comment_data['id'])
+        response = self.dongxie_client.put(comment_url, {'content': 'updated'})
+        self.assertEqual(response.status_code, 200)
+        response = self.dongxie_client.get(tweet_url)
+        self.assertEqual(response.data['comments_count'], 3)
+        self.tweet.refresh_from_db()
+        self.assertEqual(self.tweet.comments_count, 3)
+
+        # delete a comment will update comments_count
+        response = self.dongxie_client.delete(comment_url)
+        self.assertEqual(response.status_code, 200)
+        response = self.linghu_client.get(tweet_url)
+        self.assertEqual(response.data['comments_count'], 2)
+        self.tweet.refresh_from_db()
+        self.assertEqual(self.tweet.comments_count, 2)
